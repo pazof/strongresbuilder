@@ -7,10 +7,11 @@ using System.CodeDom;
 using System.CodeDom.Compiler;
 using System.IO;
 using Microsoft.CSharp;
-using System.Resources.Tools;
 using Mono.Options;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Resources.Tools;
 
 namespace strongresbuildercli
 {
@@ -33,11 +34,13 @@ namespace strongresbuildercli
             bool show_help = false;
             string defaultNameSpace = null;
             bool declare_internal = true;
+            bool targetsPcl = false;
 
             var p = new OptionSet() {
             { "n|default-namespace=", "the name default namespace ",
               v => defaultNameSpace = v },
             { "p|public", "Generate a public class", v=> declare_internal = false },
+                {"t|target-pcl","Target PCL" , v=> targetsPcl =true },
             { "v", "increase debug message verbosity",
               v => { if (v != null) ++verbosity; } },
             { "h|help",  "show this message and exit",
@@ -84,7 +87,7 @@ namespace strongresbuildercli
                             var outputFileName = className + _designer_cs_ext;
                             var fo = Path.Combine(fi.DirectoryName, outputFileName);
     
-                            generateResxCode(fi.FullName, ns, className, fo, declare_internal) ;
+                            generateResxCode(fi.FullName, ns, className, fo, declare_internal, targetsPcl) ;
                         }
                         else
                         {
@@ -99,7 +102,7 @@ namespace strongresbuildercli
                 }
                 else
                 {
-                    Trace($"File not found: {fileName}");
+                    Error($"File not found: {fileName}");
                 }
             }
         }
@@ -116,15 +119,23 @@ namespace strongresbuildercli
             Console.WriteLine("Options:");
             p.WriteOptionDescriptions(Console.Out);
         }
-
+        static void Error(string format, params object[] args)
+        {
+            Log((int) LogLevel.Error, format, args);
+        }
         static void Trace(string format, params object[] args)
         {
             Log((int) LogLevel.Trace, format, args);
         }
 
+        static void Warn(string format, params object[] args)
+        {
+            Log((int)LogLevel.Warning, format, args);
+        }
+
         static void Log(int level, string format, params object[] args)
         {
-            if (verbosity > level)
+            if (verbosity >= level)
             {
                 Console.Error.Write("# ");
                 Console.Error.WriteLine(format, args);
@@ -140,21 +151,58 @@ namespace strongresbuildercli
         /// <param name="generatedFileName">Generated file name.</param>
         /// <param name="intern">If set to <c>true</c> intern.</param>
         public static void generateResxCode(string resXFileName,
-         string nameSpace, string className, string generatedFileName, bool intern = true )
+         string nameSpace, string className, string generatedFileName, bool intern = true, bool targetsPcl = false)
         {
             StreamWriter sw = new StreamWriter(generatedFileName);
             string[] errors = null;
-            CSharpCodeProvider provider = new CSharpCodeProvider();
+            Dictionary<string, string> provOptions =
+            new Dictionary<string, string>();
+
+            provOptions.Add("CompilerVersion", "v12.0");
+            // Get the provider for Microsoft.CSharp
+            CSharpCodeProvider csProvider = new CSharpCodeProvider(provOptions);
+
+
             CodeCompileUnit code = StronglyTypedResourceBuilder.Create(resXFileName, className,
-                                                                       nameSpace, provider,
+                                                                       nameSpace, csProvider,
                                                                        intern, out errors);
+            if (targetsPcl)
+                FixupPclTypeInfo(code);
+
             if (errors.Length > 0)
                 foreach (var error in errors)
                     Console.Error.WriteLine(error);
             var options = new CodeGeneratorOptions();
-            provider.GenerateCodeFromCompileUnit(code, sw, options);
+           
+            csProvider.GenerateCodeFromCompileUnit(code, sw, options);
             sw.Close();
             Trace($"Generated: {generatedFileName}");
         }
+
+        static CodeObjectCreateExpression GetInitExpr(CodeCompileUnit ccu)
+        {
+            ccu.Namespaces[0].Imports.Add(new CodeNamespaceImport("System.Reflection"));
+            var assignment = ccu.Namespaces[0].Types[0]
+                                .Members.OfType<CodeMemberProperty>().Single(t => t.Name == "ResourceManager")
+                                .GetStatements.OfType<CodeConditionStatement>().Single()
+                                .TrueStatements.OfType<CodeVariableDeclarationStatement>().Single();
+            var initExpr = (CodeObjectCreateExpression)assignment.InitExpression;
+            return initExpr;
+        }
+
+        static void FixupPclTypeInfo(CodeCompileUnit ccu)
+        {
+            try
+            {
+                CodeObjectCreateExpression initExpr = GetInitExpr(ccu);
+                var typeofExpr = (CodePropertyReferenceExpression)initExpr.Parameters[1];
+                typeofExpr.TargetObject = new CodeMethodInvokeExpression(typeofExpr.TargetObject, "GetTypeInfo");
+            }
+            catch (Exception ex)
+            {
+                Warn("Failed to fixup StronglyTypedResourceBuilder output for PCL\n{0}", ex);
+            }
+        }
+
     }
 }
