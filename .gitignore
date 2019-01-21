@@ -1,0 +1,6 @@
+/.vs/
+/.vscode/
+/packages/
+/strongresbuildercli/bin/
+/strongresbuildercli/obj/
+/strongresbuildercli/strongresbuildercli.csproj.user
