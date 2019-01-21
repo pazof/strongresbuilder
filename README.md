@@ -1,6 +1,11 @@
-# Strongly typed resources code generator
+# strongresbuilder
 
-Invokes StronglyTypedResourceBuilder.Create from System.Designer framework assembly
+Generates strongly typed ressources csharp code, from command line.
+
+## Strongly typed resources code generator
+
+Invokes StronglyTypedResourceBuilder.Create from System.Designer framework assembly,
+and use the `GetTypeInfo()` method from `System.Reflection`, when needed, at targeting pcl projects. 
 
 ## Usage 
 
@@ -16,3 +21,10 @@ Options:
   -v                         increase debug message verbosity
   -h, --help                 show this message and exit
 ```
+
+## note
+
+This code mainly comes from the MSDN example regarding `StronglyTypedResourceBuilder.Create`, 
+and the Monodevelop source code,
+that hacks the result in case of targeting PCL projects.
+
