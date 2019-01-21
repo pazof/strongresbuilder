@@ -18,6 +18,7 @@ Options:
   -n, --default-namespace=VALUE
                              the name default namespace
   -p, --public               Generate a public class
+  -t, --target-pcl           Target PCL
   -v                         increase debug message verbosity
   -h, --help                 show this message and exit
 ```
