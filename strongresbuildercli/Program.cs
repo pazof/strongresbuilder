@@ -35,14 +35,16 @@ namespace strongresbuildercli
             string defaultNameSpace = null;
             bool declare_internal = true;
             bool targetsPcl = false;
+            bool genPartial = false;
+            string resFileNamePrefix = null;
 
             var p = new OptionSet() {
-            { "n|default-namespace=", "the name default namespace ",
-              v => defaultNameSpace = v },
+            { "n|default-namespace=", "the name default namespace ", v => defaultNameSpace = v },
             { "p|public", "Generate a public class", v=> declare_internal = false },
-                {"t|target-pcl","Target PCL" , v=> targetsPcl =true },
-            { "v", "increase debug message verbosity",
-              v => { if (v != null) ++verbosity; } },
+            { "t|target-pcl","Target PCL" , v=> targetsPcl =true },
+            { "l|gen-parcial","Generate a partial class" , v=> genPartial =true },
+            { "r|resource-filename-prefix=","Prefix resource embeded file name using given value" , v=> resFileNamePrefix =v },
+            { "v", "increase debug message verbosity", v => { if (v != null) ++verbosity; } },
             { "h|help",  "show this message and exit",
               v => show_help = v != null },
             };
@@ -73,26 +75,36 @@ namespace strongresbuildercli
                 FileInfo fi = new FileInfo(fileName);
                 if (fi.Exists)
                 {
-                    if (fi.Extension==".resx")
+                    if (fi.Extension == ".resx")
                     {
                         // try an get namespace from the file name.
-                        var names = fi.Name.Split('.');
-                        var len = names.Length;
-                        if (len >= 2) {
-
-                            var ns = string.Join(".", names.Take(len - 2));
-                            if (string.IsNullOrEmpty(ns))
-                                ns = defaultNameSpace;
-                            var className = names[len - 2];
-                            var outputFileName = className + _designer_cs_ext;
-                            var fo = Path.Combine(fi.DirectoryName, outputFileName);
-    
-                            generateResxCode(fi.FullName, ns, className, fo, declare_internal, targetsPcl) ;
-                        }
-                        else
+                        var nameParts = fi.Name.Split('.');
+                        if (nameParts.Length < 2)
                         {
                             Trace("Bad resource file name : " + fileName);
+                            break;
                         }
+
+                        var className = nameParts[nameParts.Length - 2];
+                        var relNaSpaceParts = nameParts.Take(nameParts.Length - 2).ToArray();
+                        string relativeNameSpace = null;
+                        relativeNameSpace = string.Join(".", relNaSpaceParts);
+
+                        string fullNameSpace = null;
+
+
+                        if (string.IsNullOrEmpty(relativeNameSpace))
+                            fullNameSpace = defaultNameSpace;
+                        else if (string.IsNullOrEmpty(defaultNameSpace)) 
+                          fullNameSpace = relativeNameSpace;
+                        else fullNameSpace = defaultNameSpace + "." +  relativeNameSpace;
+                        
+
+                        var outputFileName = fullNameSpace+ "." + className + _designer_cs_ext;
+                        var fo = Path.Combine(fi.DirectoryName, outputFileName);
+
+                        generateResxCode(fi.FullName, fullNameSpace, className, fo, genPartial, declare_internal, targetsPcl, resFileNamePrefix);
+
                     }
                     else
                     {
@@ -121,11 +133,11 @@ namespace strongresbuildercli
         }
         static void Error(string format, params object[] args)
         {
-            Log((int) LogLevel.Error, format, args);
+            Log((int)LogLevel.Error, format, args);
         }
         static void Trace(string format, params object[] args)
         {
-            Log((int) LogLevel.Trace, format, args);
+            Log((int)LogLevel.Trace, format, args);
         }
 
         static void Warn(string format, params object[] args)
@@ -151,7 +163,8 @@ namespace strongresbuildercli
         /// <param name="generatedFileName">Generated file name.</param>
         /// <param name="intern">If set to <c>true</c> intern.</param>
         public static void generateResxCode(string resXFileName,
-         string nameSpace, string className, string generatedFileName, bool intern = true, bool targetsPcl = false)
+         string nameSpace, string className, string generatedFileName, 
+         bool partial = false, bool intern = true, bool targetsPcl = false, string resFileNamePrefix=null)
         {
             StreamWriter sw = new StreamWriter(generatedFileName);
             string[] errors = null;
@@ -168,12 +181,17 @@ namespace strongresbuildercli
                                                                        intern, out errors);
             if (targetsPcl)
                 FixupPclTypeInfo(code);
+            if (resFileNamePrefix!=null)
+                FixResourcePathPrefix(code, resFileNamePrefix);
+            if (partial)
+                FixupClassDeclarationForPartial(code);
+
 
             if (errors.Length > 0)
                 foreach (var error in errors)
                     Console.Error.WriteLine(error);
             var options = new CodeGeneratorOptions();
-           
+
             csProvider.GenerateCodeFromCompileUnit(code, sw, options);
             sw.Close();
             Trace($"Generated: {generatedFileName}");
@@ -204,5 +222,38 @@ namespace strongresbuildercli
             }
         }
 
+        static void FixResourcePathPrefix(CodeCompileUnit ccu, string resFileNamePrefix)
+        {
+            try
+            {
+                CodeObjectCreateExpression initExpr = GetInitExpr(ccu);
+                CodePrimitiveExpression prefix = new CodePrimitiveExpression(resFileNamePrefix);
+
+                var typeofExpr = initExpr.Parameters[0];
+                Warn("got:" + typeofExpr.GetType().FullName);
+                var add = new CodeBinaryOperatorExpression(prefix, CodeBinaryOperatorType.Add, typeofExpr);
+                initExpr.Parameters[0]=add;
+
+            }
+            catch (Exception ex)
+            {
+                Warn("Failed to fixup StronglyTypedResourceBuilder output for Resource Path Prefix\n{0}", ex);
+            }
+        }
+        static void FixupClassDeclarationForPartial(CodeCompileUnit ccu)
+        {
+            try
+            {
+                ccu.Namespaces[0].Types[0].IsPartial=true;
+                
+                // additionnaly drop internal empty ctor
+                var ctor = ccu.Namespaces[0].Types[0].Members.OfType<CodeConstructor>().Single();
+                ccu.Namespaces[0].Types[0].Members.Remove(ctor);
+            }
+            catch (Exception ex)
+            {
+                Warn("Failed to fixup StronglyTypedResourceBuilder output  Declaration For Partial\n{0}", ex);
+            }
+        }
     }
 }
