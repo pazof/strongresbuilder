@@ -15,6 +15,7 @@
     <Copyright>Paul Schneider - 2019</Copyright>
     <RequireLicenseAcceptance>true</RequireLicenseAcceptance>
     <PackageLicenseFile>LICENCE.md</PackageLicenseFile>
+    <PackageLicenseUrl>https://github.com/pazof/strongresbuilder/blob/master/strongresbuildercli/LICENCE.md</PackageLicenseUrl>
     <RepositoryUrl>git@github.com:pazof/strongresbuilder.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageOutputPath>bin</PackageOutputPath>
