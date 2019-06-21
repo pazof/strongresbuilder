@@ -5,12 +5,13 @@
     <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
     <ProjectGuid>{F80FBBFD-DBF1-46FD-A836-2BB63C9D092A}</ProjectGuid>
     <OutputType>Exe</OutputType>
-    <Version>1.0.1</Version>
+    <Version>1.0.3</Version>
     <RootNamespace>strongresbuildercli</RootNamespace>
     <AssemblyName>strongresbuildercli</AssemblyName>
     <TargetFrameworkVersion>v4.7.1</TargetFrameworkVersion>
     <PackageId>strongresbuilder.cli</PackageId>
-    <Description>Strong names code generation improuved</Description>
+    <Description>Strong names code generation command line interface, 
+    with option to render partial class, and specify a prefix to resource stream key</Description>
     <Authors>Paul Schneider (paul@pschneider.fr)</Authors>
     <Copyright>Paul Schneider - 2019</Copyright>
     <RequireLicenseAcceptance>true</RequireLicenseAcceptance>
@@ -21,7 +22,7 @@
     <PackageOutputPath>bin\$(Configuration)</PackageOutputPath>
     <PackageTags>tool</PackageTags>
     <IsTool>true</IsTool>
-    <PackageReleaseNotes>Fixes the installation path.</PackageReleaseNotes>
+    <PackageReleaseNotes>Fixes the package description.</PackageReleaseNotes>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
