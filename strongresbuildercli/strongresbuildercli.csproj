@@ -5,11 +5,11 @@
     <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
     <ProjectGuid>{F80FBBFD-DBF1-46FD-A836-2BB63C9D092A}</ProjectGuid>
     <OutputType>Exe</OutputType>
+    <Version>1.0.1</Version>
     <RootNamespace>strongresbuildercli</RootNamespace>
     <AssemblyName>strongresbuildercli</AssemblyName>
     <TargetFrameworkVersion>v4.7.1</TargetFrameworkVersion>
     <PackageId>strongresbuilder.cli</PackageId>
-    <PackageVersion>1.0.1</PackageVersion>
     <Description>Strong names code generation improuved</Description>
     <Authors>Paul Schneider (paul@pschneider.fr)</Authors>
     <Copyright>Paul Schneider - 2019</Copyright>
@@ -18,9 +18,12 @@
     <PackageLicenseUrl>https://github.com/pazof/strongresbuilder/blob/master/strongresbuildercli/LICENCE.md</PackageLicenseUrl>
     <RepositoryUrl>git@github.com:pazof/strongresbuilder.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageOutputPath>bin</PackageOutputPath>
+    <PackageOutputPath>bin\$(Configuration)</PackageOutputPath>
+    <PackageTags>tool</PackageTags>
+    <IsTool>true</IsTool>
+    <PackageReleaseNotes>Fixes the installation path.</PackageReleaseNotes>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
@@ -29,14 +32,15 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ExternalConsole>true</ExternalConsole>
+    <VersionSuffix>dev</VersionSuffix>
+    <PackageVersion>$(Version)-$(VersionSuffix)</PackageVersion>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
     <Optimize>true</Optimize>
     <OutputPath>bin\Release</OutputPath>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ExternalConsole>true</ExternalConsole>
-    <PlatformTarget>x86</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -52,7 +56,7 @@
   </ItemGroup>
   <Target Name="CopyPackage" AfterTargets="Pack">
     <Copy
-      SourceFiles="$(OutputPath)..\$(PackageId).$(PackageVersion).nupkg"
+      SourceFiles="$(OutputPath)\$(PackageId).$(PackageVersion).nupkg"
       DestinationFolder="/home/paul/Nupkgs"
       />
   </Target>
