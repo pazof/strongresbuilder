@@ -94,13 +94,14 @@ namespace strongresbuildercli
 
 
                         if (string.IsNullOrEmpty(relativeNameSpace))
-                            fullNameSpace = defaultNameSpace;
+                            if (string.IsNullOrEmpty(defaultNameSpace))
+                                fullNameSpace = className;
+                            else fullNameSpace = defaultNameSpace;
                         else if (string.IsNullOrEmpty(defaultNameSpace)) 
                           fullNameSpace = relativeNameSpace;
                         else fullNameSpace = defaultNameSpace + "." +  relativeNameSpace;
-                        
 
-                        var outputFileName = fullNameSpace+ "." + className + _designer_cs_ext;
+                        var outputFileName = className + _designer_cs_ext;
                         var fo = Path.Combine(fi.DirectoryName, outputFileName);
 
                         generateResxCode(fi.FullName, fullNameSpace, className, fo, genPartial, declare_internal, targetsPcl, resFileNamePrefix);
